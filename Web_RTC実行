@@ -1,0 +1,33 @@
+./go2rtc_linux_amd64
+keime_pcのカメラ起動する
+操作側のPCでgo2RTC   http://100.101.141.2:1984/   起動さす
+sudo pkill -f go2rtc
+#-----------------------------------------------
+
+git hub   up
+# 1. フォルダに移動
+cd ~/kicktest_ws_v2/src/rtc-joy-KILL
+
+# 2. Git リポジトリとして初期化
+git init
+
+# 3. .gitignore を作成（バイナリや不要なファイルを除外）
+# これをやらないと、大きな実行ファイルまでアップロードされてしまいます
+echo "go2rtc_linux_amd64" >> .gitignore
+echo "__pycache__/" >> .gitignore
+echo "*.pyc" >> .gitignore
+
+# 4. 全ファイルをステージング（登録対象にする）
+git add .
+
+# 5. 最初のコミット（記録）
+git commit -m "First commit: RTC joy system"
+
+# 6. メインブランチ名を合わせる
+git branch -M main
+
+# 7. GitHub のリポジトリURLを紐付ける（URLは自分のものに差し替えてください）
+git remote add origin https://github.com/ユーザー名/rtc-joy.git
+
+# 8. アップロード実行
+git push -u origin main
