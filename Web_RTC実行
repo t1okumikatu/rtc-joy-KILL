@@ -31,3 +31,53 @@ git remote add origin https://github.com/ユーザー名/rtc-joy.git
 
 # 8. アップロード実行
 git push -u origin main
+
+# a. ANKERカメラ設定
+Keigan Robot（KeiganAliやKeiganVMなど）でよく使われるAnker製カメラ（Anker PowerConf C200など）をLinux環境で動かすための、最適化された `go2rtc.yaml` の例を作成しました。
+
+Ankerのカメラは標準で **MJPEG** や **H.264** の出力に対応していることが多いため、前回の設定（`libx264` で再エンコード）よりもCPU負荷を抑えた **「コピー（再エンコードなし）」** の設定を推奨します。
+
+---
+
+### 推奨される yaml 設定案
+
+```yaml
+streams:
+  # 映像と音声を1つのプロセスで統合し、低遅延かつ低負荷で配信
+  robot_cam:
+    - exec:ffmpeg -f v4l2 -input_format h264 -video_size 1280x720 -framerate 30 -i /dev/video0 -f alsa -i hw:1,0 -c:v copy -c:a opus -f rtsp {output}
+
+  # （予備）カメラがH.264に対応していない、または不安定な場合（CPU使用率：中）
+  # robot_cam_fallback:
+  #   - exec:ffmpeg -f v4l2 -i /dev/video0 -f alsa -i hw:1,0 -c:v libx264 -preset ultrafast -tune zerolatency -c:a opus -f rtsp {output}
+```
+
+---
+
+### 設定のポイント
+
+1.  **`-input_format h264` と `-c:v copy`**:
+    Ankerのカメラ内部で生成されたH.264映像をそのまま利用します。PC側で「映像を作り直す（エンコード）」必要がないため、**遅延が最小限になり、CPU負荷がほぼゼロ**になります。
+2.  **`-video_size 1280x720 -framerate 30`**:
+    Anker C200等の性能を活かしつつ、Web経由での配信でも安定しやすい解像度を指定しています。必要に応じて `1920x1080` に変更可能です。
+3.  **映像と音声の一体化**:
+    前回のバラバラの指定ではなく、1つの `exec` 行にまとめることで、映像と音声の同期（ズレ防止）が強化されます。
+
+
+
+### 導入前の確認コマンド
+
+Keigan Robot（Ubuntu環境など）のターミナルで以下を叩き、カメラとマイクのパスが正しいか最終確認してください。
+
+* **カメラの確認**:
+    ```bash
+    v4l2-ctl --list-formats-ext
+    ```
+    これで `H264` という項目が出てくれば、上記の `copy` 設定が使えます。
+* **マイクの確認**:
+    ```bash
+    arecord -l
+    ```
+    Ankerのカメラにはマイクが内蔵されています。「USB Audio」や「Anker...」と表示されるカード番号（hw:X,0）を確認し、設定内の `hw:1,0` の数字部分を書き換えてください。
+
+この設定で保存して `go2rtc` を再起動し、ブラウザで映像と音が出るか試してみてください。ロボットの挙動（操作感）は改善されましたか？
